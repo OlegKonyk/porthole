@@ -144,10 +144,11 @@ def test_attach_session_choice() -> None:
 
 async def test_fixture_backend_is_keyed_by_target() -> None:
     backend = FixtureBackend(FIXTURES, gap_s=0)
-    assert len(await backend.runs("/home/me/dev/zeta-tests")) == 3
+    assert len(await backend.runs("/home/me/dev/zeta-tests")) == 5
     assert await backend.runs("/home/me/dev/mid-api") == []
     assert await backend.runs("unknown-box") == []
-    assert len(await backend.runs("alpha-docs")) == 3  # stopped, but runs_total 4: by name too
+    assert len(await backend.runs("alpha-docs")) == 5  # stopped, but runs_total 4: by name too
+    assert len(await backend.runs("/home/me/dev/omega-web")) == 5  # lost newest run: has runs
     zeta = [e async for e in backend.follow("/home/me/dev/zeta-tests", None)]
     assert len(zeta) == 12
     assert [e async for e in backend.follow("/home/me/dev/mid-api", None)] == []

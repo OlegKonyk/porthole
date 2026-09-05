@@ -6,7 +6,9 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-RUN_STATES = ("running", "done", "failed", "stopped")
+RUN_STATES = ("running", "done", "failed", "stopped", "lost", "unknown")
+# `lost`: the run's process vanished without recording an exit (the CLI reconciles it).
+# `unknown`: a run directory with no status file. Neither counts as running.
 EVENT_KINDS = ("text", "tool", "tool_result", "hook", "result", "status")
 
 
@@ -187,6 +189,15 @@ def fmt_cost(cost: float | None) -> str:
 
 def fmt_turns(turns: int | None) -> str:
     return "" if turns is None else str(turns)
+
+
+def run_state_style(state: str) -> str:
+    """failed and lost share a colour; unknown is dimmed; the rest use the theme's text."""
+    if state in ("failed", "lost"):
+        return "red"
+    if state == "unknown":
+        return "dim"
+    return ""
 
 
 def fmt_ts(ts: str | None) -> str:

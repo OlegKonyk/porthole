@@ -3,15 +3,33 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 
-from porthole.model import Box, Event, Status, fmt_age, fmt_cost, fmt_elapsed, parse_iso
+from porthole.model import (
+    RUN_STATES,
+    Box,
+    Event,
+    Status,
+    fmt_age,
+    fmt_cost,
+    fmt_elapsed,
+    parse_iso,
+    run_state_style,
+)
 
 from .conftest import FIXTURES
 
 
 def test_status_parses_fixture_and_sorts_running_runs_first() -> None:
     status = Status.from_json(json.loads((FIXTURES / "status.json").read_text()))
-    assert [b.name for b in status.sorted_boxes] == ["zeta-tests", "mid-api", "alpha-docs"]
+    assert [b.name for b in status.sorted_boxes] == [
+        "zeta-tests",
+        "mid-api",
+        "omega-web",
+        "alpha-docs",
+    ]
     assert status.running_runs == 1
+    omega = status.sorted_boxes[2]
+    assert omega.run is not None and omega.run.state == "lost"
+    assert not omega.has_running_run and omega.is_running
     zeta = status.sorted_boxes[0]
     assert zeta.run is not None and zeta.run.id == "20260905-101500"
     assert zeta.target == "/home/me/dev/zeta-tests"
@@ -36,6 +54,20 @@ def test_event_unknown_kind_falls_back_to_text() -> None:
     event = Event.from_json({"kind": "mystery", "text": "x"})
     assert event.kind == "text"
     assert Event.from_json({"kind": "tool", "tool": "Edit", "text": "a.py"}).tool == "Edit"
+
+
+def test_lost_and_unknown_runs_are_not_running() -> None:
+    base = {"name": "b", "instance": "agent-box-b", "repo": "/r", "state": "running"}
+    for state in ("lost", "unknown", "done", "failed", "stopped"):
+        box = Box.from_json({**base, "run": {"id": "R", "state": state}, "runs_total": 1})
+        assert not box.has_running_run
+        assert box.sort_key == (1, "b")
+    running = Box.from_json({**base, "run": {"id": "R", "state": "running"}, "runs_total": 1})
+    assert running.sort_key == (0, "b")
+    assert run_state_style("lost") == run_state_style("failed") == "red"
+    assert run_state_style("unknown") == "dim"
+    assert run_state_style("running") == run_state_style("done") == ""
+    assert "lost" in RUN_STATES and "unknown" in RUN_STATES
 
 
 def test_formatting() -> None:

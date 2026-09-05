@@ -33,7 +33,12 @@
         "last_text": "Adding the guest-checkout case next."
       },
       "runs_total": 3,
-      "sessions": [{"name": "run-20260905-101500", "age_s": 427}]
+      "sessions": [
+        {
+          "name": "run-20260905-101500",
+          "age_s": 427
+        }
+      ]
     },
     {
       "name": "mid-api",
@@ -44,7 +49,35 @@
       "firewall": "drop",
       "run": null,
       "runs_total": 0,
-      "sessions": [{"name": "claude", "age_s": 1860}]
+      "sessions": [
+        {
+          "name": "claude",
+          "age_s": 1860
+        }
+      ]
+    },
+    {
+      "name": "omega-web",
+      "instance": "agent-box-omega-web",
+      "repo": "/home/me/dev/omega-web",
+      "state": "running",
+      "claude_version": "2.1.261",
+      "firewall": "drop",
+      "run": {
+        "id": "20260905-081200",
+        "state": "lost",
+        "exit": null,
+        "model": "sonnet",
+        "branch": "agent/fix-nav-20260905-081200",
+        "started_at": "2026-09-05T08:12:00Z",
+        "elapsed_s": 7807,
+        "turns": 4,
+        "cost_usd": 0.1702,
+        "last_tool": "Bash  npm test",
+        "last_text": null
+      },
+      "runs_total": 1,
+      "sessions": []
     }
   ]
 }

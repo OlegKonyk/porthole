@@ -17,7 +17,7 @@ from porthole.cli import build_app
 
 from .conftest import FIXTURES, calls
 
-EXPECTED_ORDER = ["zeta-tests", "mid-api", "alpha-docs"]
+EXPECTED_ORDER = ["zeta-tests", "mid-api", "omega-web", "alpha-docs"]  # lost run: not running
 
 
 async def wait_for(condition, timeout: float = 5.0, step: float = 0.05) -> None:
@@ -50,7 +50,7 @@ def table_names(app: PortholeApp) -> list[str]:
 
 
 async def wait_for_table(app: PortholeApp) -> None:
-    await wait_for(lambda: app.query_one("#boxes", DataTable).row_count == 3)
+    await wait_for(lambda: app.query_one("#boxes", DataTable).row_count == 4)
 
 
 async def test_table_renders_fixture_boxes_in_order(fake_log: Path) -> None:
@@ -69,8 +69,10 @@ async def test_table_renders_fixture_boxes_in_order(fake_log: Path) -> None:
             "$0.43",
             "Edit  tests/e2e/checkout.spec.ts",
         ]
+        omega = table.get_row_at(2)
+        assert str(omega[2]) == "lost" and omega[2].style == "red"
         summary = str(app.query_one("#summary", Static).content)
-        assert "3 boxes" in summary
+        assert "4 boxes" in summary
         assert "1 running run" in summary
         assert "ago" in summary
         assert app.query_one("#error", Static).has_class("hidden")
@@ -206,9 +208,12 @@ async def test_enter_opens_runs_modal_and_esc_closes(fake_log: Path) -> None:
         await pilot.pause()
         assert isinstance(app.screen, RunsScreen)
         runs_table = app.screen.query_one("#runs", DataTable)
-        await wait_for(lambda: runs_table.row_count == 3)
+        await wait_for(lambda: runs_table.row_count == 5)
         assert str(runs_table.get_row_at(0)[0]) == "20260905-101500"
         assert str(runs_table.get_row_at(1)[1]) == "done"
+        lost, unknown = runs_table.get_row_at(3)[1], runs_table.get_row_at(4)[1]
+        assert str(lost) == "lost" and lost.style == "red"
+        assert str(unknown) == "unknown" and unknown.style == "dim"
         await pilot.press("escape")
         await pilot.pause()
         assert not isinstance(app.screen, RunsScreen)
@@ -269,6 +274,12 @@ async def test_attach_runs_the_cli_with_the_run_session(
         await pilot.press("a")  # mid-api: a claude session listed
         await pilot.pause()
         assert app.error is None
+        await pilot.press("j")
+        await pilot.pause()
+        await wait_for(lambda: app.selected == "omega-web")
+        await pilot.press("s")  # a lost run is not running: nothing to stop
+        await pilot.pause()
+        assert app.error == "omega-web has no running run to stop"
         await pilot.press("j")
         await pilot.pause()
         await wait_for(lambda: app.selected == "alpha-docs")
@@ -417,7 +428,7 @@ async def test_runs_modal_survives_null_runids_and_reports_failures(
         await pilot.press("enter")
         await pilot.pause()
         runs_table = app.screen.query_one("#runs", DataTable)
-        await wait_for(lambda: runs_table.row_count == 3)
+        await wait_for(lambda: runs_table.row_count == 5)
         assert app.error is None
         await pilot.press("escape")
         await pilot.pause()

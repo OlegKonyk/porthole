@@ -62,7 +62,10 @@ porthole [--agentbox PATH] [--interval SECS] [--fixtures DIR]
 
 Left, a table of boxes: a state dot, the name, the current run's state,
 elapsed time, turns, cost and last tool line. Running runs sort first, then
-running boxes, then stopped ones. The header shows how many boxes and running
+running boxes, then stopped ones. A run's state is one of `running`, `done`,
+`failed`, `stopped`, `lost` (its process vanished without recording an exit)
+or `unknown` (no status file); only `running` counts as running, `failed` and
+`lost` share a colour, `unknown` is dimmed. The header shows how many boxes and running
 runs there are and how old the status is.
 
 Right, the event log of the selected box's current or newest run, fed by
@@ -96,9 +99,10 @@ interval is killed and reported the same way rather than left running.
 uv run porthole --fixtures tests/fixtures
 ```
 
-That replays three fixture boxes: one running a run, one running with no run,
-one stopped. Runs and logs are answered per box the way the CLI would: the box
-with no runs has an empty runs list and nothing to follow. `a` is unavailable
+That replays four fixture boxes: one running a run, one running with no run,
+one whose newest run is `lost`, one stopped. Runs and logs are answered per
+box the way the CLI would: the box with no runs has an empty runs list and
+nothing to follow. `a` is unavailable
 in fixture mode, since there is no terminal to attach to; porthole says so in
 the header. `tests/fake-agentbox` is a stand-in CLI that answers from the same
 fixtures; `AGENTBOX=tests/fake-agentbox uv run porthole` drives the real

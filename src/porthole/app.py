@@ -25,6 +25,7 @@ from .model import (
     fmt_elapsed,
     fmt_ts,
     fmt_turns,
+    run_state_style,
 )
 
 # The only colours in the app: one per event kind. Everything else is the theme's.
@@ -84,15 +85,19 @@ def attach_session(box: Box) -> str:
     return "claude"
 
 
-def box_row(box: Box) -> tuple[Text, str, str, str, str, str, str]:
+def run_state_cell(state: str) -> Text:
+    return Text(state, style=run_state_style(state))
+
+
+def box_row(box: Box) -> tuple[Text, str, Text, str, str, str, str]:
     dot = Text("●", style="green") if box.is_running else Text("○", style="dim")
     run = box.run
     if run is None:
-        return (dot, box.name, "", "", "", "", "")
+        return (dot, box.name, Text(""), "", "", "", "")
     return (
         dot,
         box.name,
-        run.state,
+        run_state_cell(run.state),
         fmt_elapsed(run.elapsed_s),
         fmt_turns(run.turns),
         fmt_cost(run.cost_usd),
@@ -231,12 +236,12 @@ class RunsScreen(ModalScreen[None]):
         status.update(f"{len(runs)} runs  ·  esc closes")
 
     @staticmethod
-    def _cells(run: dict[str, Any]) -> tuple[str, ...]:
+    def _cells(run: dict[str, Any]) -> tuple[str | Text, ...]:
         exit_code = run.get("exit")
         duration = run.get("duration_s")
         return (
             str(run.get("runid") or ""),
-            str(run.get("state") or ""),
+            run_state_cell(str(run.get("state") or "")),
             "" if exit_code is None else str(exit_code),
             str(run.get("model") or ""),
             str(run.get("branch") or ""),
