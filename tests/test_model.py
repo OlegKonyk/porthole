@@ -81,3 +81,23 @@ def test_formatting() -> None:
     assert fmt_age(7200) == "2.0h ago"
     assert fmt_age(None) == "?"
     assert parse_iso("2026-09-05T10:15:00+00:00") == datetime(2026, 9, 5, 10, 15, tzinfo=UTC)
+
+
+def test_render_event_shows_tool_argument_from_detail():
+    from porthole.app import render_event
+    from porthole.model import Event
+
+    cli_shape = Event(
+        ts="2026-09-05T20:32:38Z",
+        run="r",
+        kind="tool",
+        text="Bash",
+        tool="Bash",
+        detail="git log --oneline -3",
+    )
+    assert "Bash  git log --oneline -3" in render_event(cli_shape).plain
+    assert "Bash  Bash" not in render_event(cli_shape).plain
+    old_shape = Event(
+        ts="2026-09-05T20:32:38Z", run="r", kind="tool", text="src/x.py", tool="Read", detail=None
+    )
+    assert "Read  src/x.py" in render_event(old_shape).plain

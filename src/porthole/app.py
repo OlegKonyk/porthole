@@ -63,7 +63,10 @@ def render_event(event: Event) -> Text:
     line.append(" ")
     body = event.text
     if event.kind == "tool" and event.tool:
-        body = f"{event.tool}  {event.text}".strip() if event.text else event.tool
+        # The CLI puts the tool name in both `tool` and `text`, and the
+        # argument (file path, command, pattern) in `detail`.
+        argument = event.detail or (event.text if event.text != event.tool else "")
+        body = f"{event.tool}  {argument}".rstrip()
     line.append(body, style=KIND_STYLES.get(event.kind, ""))
     if event.detail and event.kind != "tool":
         line.append(f"  {event.detail}", style="dim")
