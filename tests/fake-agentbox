@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""A stand-in for the agentbox CLI that answers from the fixtures next to it.
+
+    status --json                     prints fixtures/status.json
+    runs --json -- <x>                prints fixtures/runs.json
+    logs -f --json -- <x> [id]        streams fixtures/logs.jsonl, one line per 50 ms, exits 0
+    stop-run -- <x> [id]              exits 0
+    attach -- <x> [session]           exits 0
+
+Run states in the fixtures cover running, done, failed, lost and unknown.
+Options may also come after the operands, and `--` is optional. Every call is
+appended, one line of space-joined arguments, to the file named by
+$FAKE_AGENTBOX_LOG when that is set.
+
+Knobs for the tests, all environment variables:
+    FAKE_AGENTBOX_FAIL_STATUS=1   status exits 1 with a message on stderr
+    FAKE_AGENTBOX_FAIL_RUNS=1     runs exits 1
+    FAKE_AGENTBOX_STATUS_FILE=P   status prints file P instead of the fixture
+    FAKE_AGENTBOX_RUNS_FILE=P     runs prints file P instead of the fixture
+    FAKE_AGENTBOX_STATUS_SLEEP=S  status sleeps S seconds first
+    FAKE_AGENTBOX_GAP=S           gap between streamed log lines (default 0.05)
+    FAKE_AGENTBOX_GRANDCHILD=1    logs spawns a `sleep 300` grandchild first
+    FAKE_AGENTBOX_LONG_LINE=N     logs emits one N-byte line after the third event
+    FAKE_AGENTBOX_STDERR_SPAM=N   logs writes N lines of 1 KiB to stderr after the third event
+    FAKE_AGENTBOX_ATTACH_EXIT=N   attach exits N
+    FAKE_AGENTBOX_PIDFILE=P       append "self <pid>" and "child <pid>" lines to P
+"""
+
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+
+
+def record(args):
+    path = os.environ.get("FAKE_AGENTBOX_LOG")
+    if path:
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(" ".join(args) + "\n")
+
+
+def note_pid(label, pid):
+    path = os.environ.get("FAKE_AGENTBOX_PIDFILE")
+    if path:
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(f"{label} {pid}\n")
+
+
+def split(rest):
+    """Options and operands, honouring `--`."""
+    if "--" in rest:
+        i = rest.index("--")
+        return rest[:i], rest[i + 1 :]
+    return [a for a in rest if a.startswith("-")], [a for a in rest if not a.startswith("-")]
+
+
+def stream_logs():
+    gap = float(os.environ.get("FAKE_AGENTBOX_GAP", "0.05"))
+    long_line = int(os.environ.get("FAKE_AGENTBOX_LONG_LINE", "0"))
+    spam = int(os.environ.get("FAKE_AGENTBOX_STDERR_SPAM", "0"))
+    if os.environ.get("FAKE_AGENTBOX_GRANDCHILD") == "1":
+        child = subprocess.Popen(["sleep", "300"])
+        note_pid("child", child.pid)
+    lines = [l for l in (FIXTURES / "logs.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    for index, line in enumerate(lines):
+        sys.stdout.write(line + "\n")
+        sys.stdout.flush()
+        if index == 2:
+            if long_line:
+                sys.stdout.write("x" * long_line + "\n")
+                sys.stdout.flush()
+            for n in range(spam):
+                sys.stderr.write(f"limactl warning {n} " + "w" * 1000 + "\n")
+            sys.stderr.flush()
+        time.sleep(gap)
+    return 0
+
+
+def main(argv):
+    record(argv)
+    note_pid("self", os.getpid())
+    if not argv:
+        print("usage: agentbox <command> ...", file=sys.stderr)
+        return 2
+    command, rest = argv[0], argv[1:]
+    _options, operands = split(rest)
+    if command == "status":
+        sleep = float(os.environ.get("FAKE_AGENTBOX_STATUS_SLEEP", "0"))
+        if sleep:
+            time.sleep(sleep)
+        if os.environ.get("FAKE_AGENTBOX_FAIL_STATUS") == "1":
+            print("limactl: connection refused (fake failure)", file=sys.stderr)
+            return 1
+        path = Path(os.environ.get("FAKE_AGENTBOX_STATUS_FILE") or FIXTURES / "status.json")
+        sys.stdout.write(path.read_text(encoding="utf-8"))
+        return 0
+    if command == "runs":
+        if os.environ.get("FAKE_AGENTBOX_FAIL_RUNS") == "1":
+            print("limactl: instance not running (fake failure)", file=sys.stderr)
+            return 1
+        path = Path(os.environ.get("FAKE_AGENTBOX_RUNS_FILE") or FIXTURES / "runs.json")
+        sys.stdout.write(path.read_text(encoding="utf-8"))
+        return 0
+    if command == "logs":
+        return stream_logs()
+    if command == "stop-run":
+        return 0
+    if command == "attach":
+        return int(os.environ.get("FAKE_AGENTBOX_ATTACH_EXIT", "0"))
+    print(f"agentbox: unknown command {command}", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

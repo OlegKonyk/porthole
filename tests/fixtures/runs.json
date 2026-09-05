@@ -1,0 +1,62 @@
+[
+  {
+    "runid": "20260905-101500",
+    "state": "running",
+    "exit": null,
+    "model": "sonnet",
+    "branch": "agent/cover-checkout-20260905-101500",
+    "started_at": "2026-09-05T10:15:00Z",
+    "duration_s": 427,
+    "turns": 12,
+    "cost_usd": 0.4312,
+    "files_changed": 2
+  },
+  {
+    "runid": "20260904-171203",
+    "state": "done",
+    "exit": 0,
+    "model": "sonnet",
+    "branch": "agent/flaky-login-20260904-171203",
+    "started_at": "2026-09-04T17:12:03Z",
+    "duration_s": 1312,
+    "turns": 31,
+    "cost_usd": 1.0871,
+    "files_changed": 5
+  },
+  {
+    "runid": "20260904-090011",
+    "state": "failed",
+    "exit": 1,
+    "model": "opus",
+    "branch": "agent/perf-audit-20260904-090011",
+    "started_at": "2026-09-04T09:00:11Z",
+    "duration_s": 88,
+    "turns": 2,
+    "cost_usd": 0.0913,
+    "files_changed": 0
+  },
+  {
+    "runid": "20260903-231001",
+    "state": "lost",
+    "exit": null,
+    "model": "sonnet",
+    "branch": "agent/retry-upload-20260903-231001",
+    "started_at": "2026-09-03T23:10:01Z",
+    "duration_s": null,
+    "turns": 4,
+    "cost_usd": 0.12,
+    "files_changed": null
+  },
+  {
+    "runid": "20260903-120000",
+    "state": "unknown",
+    "exit": null,
+    "model": null,
+    "branch": null,
+    "started_at": "2026-09-03T12:00:00Z",
+    "duration_s": null,
+    "turns": null,
+    "cost_usd": null,
+    "files_changed": null
+  }
+]
