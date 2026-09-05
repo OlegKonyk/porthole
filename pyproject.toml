@@ -1,0 +1,38 @@
+[project]
+name = "porthole"
+version = "0.1.0"
+description = "A terminal window into every agent box: a Textual renderer of agentbox --json output"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Oleg Konyk" }]
+requires-python = ">=3.12"
+dependencies = [
+    "textual>=8,<9",
+]
+
+[project.scripts]
+porthole = "porthole.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["tests/fake-agentbox"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-09-05T10:22:07Z",
+  "boxes": [
+    {
+      "name": "alpha-docs",
+      "instance": "agent-box-alpha-docs",
+      "repo": "/home/me/dev/alpha-docs",
+      "state": "stopped",
+      "claude_version": null,
+      "firewall": "unknown",
+      "run": null,
+      "runs_total": 4,
+      "sessions": []
+    },
+    {
+      "name": "zeta-tests",
+      "instance": "agent-box-zeta-tests",
+      "repo": "/home/me/dev/zeta-tests",
+      "state": "running",
+      "claude_version": "2.1.261",
+      "firewall": "drop",
+      "run": {
+        "id": "20260905-101500",
+        "state": "running",
+        "exit": null,
+        "model": "sonnet",
+        "branch": "agent/cover-checkout-20260905-101500",
+        "started_at": "2026-09-05T10:15:00Z",
+        "elapsed_s": 427,
+        "turns": 12,
+        "cost_usd": 0.4312,
+        "last_tool": "Edit  tests/e2e/checkout.spec.ts",
+        "last_text": "Adding the guest-checkout case next."
+      },
+      "runs_total": 3,
+      "sessions": [{"name": "run-20260905-101500", "age_s": 427}]
+    },
+    {
+      "name": "mid-api",
+      "instance": "agent-box-mid-api",
+      "repo": "/home/me/dev/mid-api",
+      "state": "running",
+      "claude_version": "2.1.261",
+      "firewall": "drop",
+      "run": null,
+      "runs_total": 0,
+      "sessions": [{"name": "claude", "age_s": 1860}]
+    }
+  ]
+}
