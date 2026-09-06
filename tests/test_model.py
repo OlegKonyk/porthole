@@ -4,10 +4,13 @@ import json
 from datetime import UTC, datetime
 
 from porthole.model import (
+    EGRESS_MODES,
     RUN_STATES,
     Box,
     Event,
     Status,
+    egress_mode,
+    egress_style,
     fmt_age,
     fmt_cost,
     fmt_elapsed,
@@ -29,6 +32,7 @@ def test_status_parses_fixture_and_sorts_running_runs_first() -> None:
     assert status.running_runs == 1
     omega = status.sorted_boxes[2]
     assert omega.run is not None and omega.run.state == "lost"
+    assert [b.firewall for b in status.sorted_boxes] == ["deny", "observe", "open", "unknown"]
     assert not omega.has_running_run and omega.is_running
     zeta = status.sorted_boxes[0]
     assert zeta.run is not None and zeta.run.id == "20260905-101500"
@@ -68,6 +72,43 @@ def test_lost_and_unknown_runs_are_not_running() -> None:
     assert run_state_style("unknown") == "dim"
     assert run_state_style("running") == run_state_style("done") == ""
     assert "lost" in RUN_STATES and "unknown" in RUN_STATES
+
+
+def test_egress_mode_mapping_and_style() -> None:
+    base = {"name": "b", "instance": "agent-box-b", "repo": "/r", "state": "running"}
+    assert Box.from_json({**base, "firewall": "drop"}).firewall == "deny"  # the old name
+    for mode in EGRESS_MODES:
+        assert Box.from_json({**base, "firewall": mode}).firewall == mode
+    assert Box.from_json(base).firewall == "unknown"
+    assert Box.from_json({**base, "firewall": None}).firewall == "unknown"
+    assert egress_style("deny") == "dim"
+    assert egress_style("observe") == "yellow"
+    assert egress_style("open") == "red"
+    assert egress_style("unknown") == "dim"
+    assert egress_mode("drop") == "deny"
+
+
+def test_firewall_detail_and_disagreement() -> None:
+    base = {"name": "b", "instance": "agent-box-b", "repo": "/r", "state": "running"}
+    assert Box.from_json(base).firewall_detail is None
+    assert Box.from_json({**base, "firewall_detail": "  "}).firewall_detail is None
+    stopped = Box.from_json(
+        {**base, "state": "stopped", "firewall": "unknown", "firewall_detail": "box is stopped"}
+    )
+    assert stopped.firewall_detail == "box is stopped"
+    assert not stopped.egress_disagrees
+    inactive = Box.from_json(
+        {**base, "firewall": "unknown", "firewall_detail": "firewall unit is not active"}
+    )
+    assert not inactive.egress_disagrees
+    by_wording = Box.from_json(
+        {**base, "firewall": "unknown", "firewall_detail": "mode file and ruleset disagree"}
+    )
+    assert by_wording.egress_disagrees
+    by_contract = Box.from_json(  # a detail on a known mode only happens when they differ
+        {**base, "firewall": "deny", "firewall_detail": "ruleset has an extra ACCEPT rule"}
+    )
+    assert by_contract.egress_disagrees
 
 
 def test_formatting() -> None:

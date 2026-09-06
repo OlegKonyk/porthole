@@ -10,7 +10,8 @@
       "firewall": "unknown",
       "run": null,
       "runs_total": 4,
-      "sessions": []
+      "sessions": [],
+      "firewall_detail": "box is stopped; no live ruleset to read"
     },
     {
       "name": "zeta-tests",
@@ -18,7 +19,7 @@
       "repo": "/home/me/dev/zeta-tests",
       "state": "running",
       "claude_version": "2.1.261",
-      "firewall": "drop",
+      "firewall": "deny",
       "run": {
         "id": "20260905-101500",
         "state": "running",
@@ -46,7 +47,7 @@
       "repo": "/home/me/dev/mid-api",
       "state": "running",
       "claude_version": "2.1.261",
-      "firewall": "drop",
+      "firewall": "observe",
       "run": null,
       "runs_total": 0,
       "sessions": [
@@ -62,7 +63,7 @@
       "repo": "/home/me/dev/omega-web",
       "state": "running",
       "claude_version": "2.1.261",
-      "firewall": "drop",
+      "firewall": "open",
       "run": {
         "id": "20260905-081200",
         "state": "lost",

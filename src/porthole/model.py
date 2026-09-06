@@ -9,6 +9,8 @@ from typing import Any
 RUN_STATES = ("running", "done", "failed", "stopped", "lost", "unknown")
 # `lost`: the run's process vanished without recording an exit (the CLI reconciles it).
 # `unknown`: a run directory with no status file. Neither counts as running.
+# The box's egress mode. `drop` was the old name for `deny` and is mapped to it.
+EGRESS_MODES = ("deny", "observe", "open", "unknown")
 EVENT_KINDS = ("text", "tool", "tool_result", "hook", "result", "status")
 
 
@@ -57,6 +59,7 @@ class Box:
     state: str
     claude_version: str | None = None
     firewall: str = "unknown"
+    firewall_detail: str | None = None  # why the mode is unknown, or how file and ruleset differ
     run: Run | None = None
     runs_total: int = 0
     sessions: tuple[Session, ...] = ()
@@ -70,7 +73,8 @@ class Box:
             repo=data.get("repo"),
             state=str(data.get("state", "stopped")),
             claude_version=data.get("claude_version"),
-            firewall=str(data.get("firewall", "unknown")),
+            firewall=egress_mode(data.get("firewall")),
+            firewall_detail=_optional_str(data.get("firewall_detail")),
             run=Run.from_json(run) if isinstance(run, dict) else None,
             runs_total=int(data.get("runs_total") or 0),
             sessions=tuple(
@@ -78,6 +82,15 @@ class Box:
                 for s in data.get("sessions") or []
             ),
         )
+
+    @property
+    def egress_disagrees(self) -> bool:
+        """The mode file and the live ruleset differ: a detail on a known mode, or one
+        that says so. That is the case worth the header, not a stopped box."""
+        detail = (self.firewall_detail or "").lower()
+        if not detail:
+            return False
+        return self.firewall != "unknown" or "disagree" in detail or "mismatch" in detail
 
     @property
     def target(self) -> str:
@@ -153,6 +166,13 @@ class Event:
         )
 
 
+def _optional_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
 def parse_iso(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -189,6 +209,23 @@ def fmt_cost(cost: float | None) -> str:
 
 def fmt_turns(turns: int | None) -> str:
     return "" if turns is None else str(turns)
+
+
+def egress_mode(value: Any) -> str:
+    """Normalise the status contract's ``firewall`` field to one of EGRESS_MODES."""
+    mode = str(value or "unknown")
+    if mode == "drop":
+        return "deny"
+    return mode
+
+
+def egress_style(mode: str) -> str:
+    """deny and unknown dimmed, observe yellow, open red: the louder the more it lets out."""
+    if mode == "observe":
+        return "yellow"
+    if mode == "open":
+        return "red"
+    return "dim"
 
 
 def run_state_style(state: str) -> str:
