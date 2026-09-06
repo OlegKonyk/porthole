@@ -46,7 +46,7 @@ def grandchild_pid(pidfile: Path) -> int:
 
 def table_names(app: PortholeApp) -> list[str]:
     table = app.query_one("#boxes", DataTable)
-    return [str(table.get_row_at(i)[1]) for i in range(table.row_count)]
+    return [str(table.get_row_at(i)[2]) for i in range(table.row_count)]
 
 
 async def wait_for_table(app: PortholeApp) -> None:
@@ -61,7 +61,8 @@ async def test_table_renders_fixture_boxes_in_order(fake_log: Path) -> None:
         assert table_names(app) == EXPECTED_ORDER
         table = app.query_one("#boxes", DataTable)
         zeta = table.get_row_at(0)
-        assert [str(c) for c in zeta[1:]] == [
+        assert str(zeta[1]) == "deny" and zeta[1].style == "dim"
+        assert [str(c) for c in zeta[2:]] == [
             "zeta-tests",
             "running",
             "07:07",
@@ -70,7 +71,14 @@ async def test_table_renders_fixture_boxes_in_order(fake_log: Path) -> None:
             "Edit  tests/e2e/checkout.spec.ts",
         ]
         omega = table.get_row_at(2)
-        assert str(omega[2]) == "lost" and omega[2].style == "red"
+        assert str(omega[3]) == "lost" and omega[3].style == "red"
+        egress = [(str(table.get_row_at(i)[1]), table.get_row_at(i)[1].style) for i in range(4)]
+        assert egress == [
+            ("deny", "dim"),
+            ("observe", "yellow"),
+            ("open", "red"),
+            ("unknown", "dim"),
+        ]
         summary = str(app.query_one("#summary", Static).content)
         assert "4 boxes" in summary
         assert "1 running run" in summary

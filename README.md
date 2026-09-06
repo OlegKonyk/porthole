@@ -60,8 +60,11 @@ porthole [--agentbox PATH] [--interval SECS] [--fixtures DIR]
 
 ## The window
 
-Left, a table of boxes: a state dot, the name, the current run's state,
-elapsed time, turns, cost and last tool line. Running runs sort first, then
+Left, a table of boxes: a state dot, the box's egress mode, the name, the
+current run's state, elapsed time, turns, cost and last tool line. The egress
+mode is what the CLI reports as the box's outbound network policy: `deny`
+(dimmed; the normal state), `observe` (yellow), `open` (red) or `unknown`
+(dimmed; the box is not running). Running runs sort first, then
 running boxes, then stopped ones. A run's state is one of `running`, `done`,
 `failed`, `stopped`, `lost` (its process vanished without recording an exit)
 or `unknown` (no status file); only `running` counts as running, `failed` and
@@ -100,9 +103,9 @@ uv run porthole --fixtures tests/fixtures
 ```
 
 That replays four fixture boxes: one running a run, one running with no run,
-one whose newest run is `lost`, one stopped. Runs and logs are answered per
-box the way the CLI would: the box with no runs has an empty runs list and
-nothing to follow. `a` is unavailable
+one whose newest run is `lost`, one stopped, and one in each egress mode.
+Runs and logs are answered per box the way the CLI would: the box with no
+runs has an empty runs list and nothing to follow. `a` is unavailable
 in fixture mode, since there is no terminal to attach to; porthole says so in
 the header. `tests/fake-agentbox` is a stand-in CLI that answers from the same
 fixtures; `AGENTBOX=tests/fake-agentbox uv run porthole` drives the real

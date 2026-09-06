@@ -7,7 +7,8 @@
     stop-run -- <x> [id]              exits 0
     attach -- <x> [session]           exits 0
 
-Run states in the fixtures cover running, done, failed, lost and unknown.
+Run states in the fixtures cover running, done, failed, lost and unknown; the
+four boxes cover the egress modes deny, observe, open and unknown.
 Options may also come after the operands, and `--` is optional. Every call is
 appended, one line of space-joined arguments, to the file named by
 $FAKE_AGENTBOX_LOG when that is set.

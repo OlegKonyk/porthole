@@ -20,6 +20,7 @@ from .model import (
     Box,
     Event,
     Status,
+    egress_style,
     fmt_age,
     fmt_cost,
     fmt_elapsed,
@@ -92,13 +93,19 @@ def run_state_cell(state: str) -> Text:
     return Text(state, style=run_state_style(state))
 
 
-def box_row(box: Box) -> tuple[Text, str, Text, str, str, str, str]:
+def egress_cell(mode: str) -> Text:
+    return Text(mode, style=egress_style(mode))
+
+
+def box_row(box: Box) -> tuple[Text, Text, str, Text, str, str, str, str]:
     dot = Text("●", style="green") if box.is_running else Text("○", style="dim")
+    egress = egress_cell(box.firewall)
     run = box.run
     if run is None:
-        return (dot, box.name, Text(""), "", "", "", "")
+        return (dot, egress, box.name, Text(""), "", "", "", "")
     return (
         dot,
+        egress,
         box.name,
         run_state_cell(run.state),
         fmt_elapsed(run.elapsed_s),
@@ -290,7 +297,7 @@ class PortholeApp(App[None]):
         Binding("q", "quit", "quit"),
     ]
 
-    COLUMNS = ("", "box", "run", "elapsed", "turns", "cost", "last tool")
+    COLUMNS = ("", "egress", "box", "run", "elapsed", "turns", "cost", "last tool")
 
     def __init__(self, backend: Backend, interval: float = 3.0) -> None:
         super().__init__()
