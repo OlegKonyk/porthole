@@ -88,6 +88,29 @@ def test_egress_mode_mapping_and_style() -> None:
     assert egress_mode("drop") == "deny"
 
 
+def test_firewall_detail_and_disagreement() -> None:
+    base = {"name": "b", "instance": "agent-box-b", "repo": "/r", "state": "running"}
+    assert Box.from_json(base).firewall_detail is None
+    assert Box.from_json({**base, "firewall_detail": "  "}).firewall_detail is None
+    stopped = Box.from_json(
+        {**base, "state": "stopped", "firewall": "unknown", "firewall_detail": "box is stopped"}
+    )
+    assert stopped.firewall_detail == "box is stopped"
+    assert not stopped.egress_disagrees
+    inactive = Box.from_json(
+        {**base, "firewall": "unknown", "firewall_detail": "firewall unit is not active"}
+    )
+    assert not inactive.egress_disagrees
+    by_wording = Box.from_json(
+        {**base, "firewall": "unknown", "firewall_detail": "mode file and ruleset disagree"}
+    )
+    assert by_wording.egress_disagrees
+    by_contract = Box.from_json(  # a detail on a known mode only happens when they differ
+        {**base, "firewall": "deny", "firewall_detail": "ruleset has an extra ACCEPT rule"}
+    )
+    assert by_contract.egress_disagrees
+
+
 def test_formatting() -> None:
     assert fmt_elapsed(427) == "07:07"
     assert fmt_elapsed(3725) == "62:05"

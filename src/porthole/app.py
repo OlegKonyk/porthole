@@ -97,12 +97,22 @@ def egress_cell(mode: str) -> Text:
     return Text(mode, style=egress_style(mode))
 
 
-def box_row(box: Box) -> tuple[Text, Text, str, Text, str, str, str, str]:
+def last_cell(last_tool: str | None, firewall_detail: str | None) -> Text:
+    """The last-tool text, with the egress detail appended dimmed when the CLI sent one."""
+    cell = Text(last_tool or "")
+    if firewall_detail:
+        if cell.plain:
+            cell.append("  ")
+        cell.append(f"egress: {firewall_detail}", style="dim")
+    return cell
+
+
+def box_row(box: Box) -> tuple[Text, Text, str, Text, str, str, str, Text]:
     dot = Text("●", style="green") if box.is_running else Text("○", style="dim")
     egress = egress_cell(box.firewall)
     run = box.run
     if run is None:
-        return (dot, egress, box.name, Text(""), "", "", "", "")
+        return (dot, egress, box.name, Text(""), "", "", "", last_cell(None, box.firewall_detail))
     return (
         dot,
         egress,
@@ -111,8 +121,14 @@ def box_row(box: Box) -> tuple[Text, Text, str, Text, str, str, str, str]:
         fmt_elapsed(run.elapsed_s),
         fmt_turns(run.turns),
         fmt_cost(run.cost_usd),
-        run.last_tool or "",
+        last_cell(run.last_tool, box.firewall_detail),
     )
+
+
+def egress_disagreements(status: Status) -> str | None:
+    """One header line naming every box whose mode file and live ruleset disagree."""
+    parts = [f"{b.name}: {b.firewall_detail}" for b in status.sorted_boxes if b.egress_disagrees]
+    return "egress " + "; ".join(parts) if parts else None
 
 
 class ConfirmScreen(ModalScreen[bool]):
@@ -356,7 +372,10 @@ class PortholeApp(App[None]):
         try:
             self.render_table(status)
             self.status = status
-            if self.error_source == "status":
+            disagreement = egress_disagreements(status)
+            if disagreement:
+                self.set_error(disagreement, "egress")
+            elif self.error_source in ("status", "egress"):
                 self.clear_error()
             else:
                 self.render_header()
@@ -409,6 +428,10 @@ class PortholeApp(App[None]):
             raise ValueError("two boxes share a name")
         rows = [box_row(box) for box in boxes]
         table = self.query_one("#boxes", DataTable)
+        if table.row_count and 0 <= table.cursor_row < table.row_count:
+            # The cursor is the operator's intent, even when its highlight message is
+            # still queued behind this poll: a re-render must never undo a keypress.
+            self.selected = table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value
         if self.selected not in names:
             self.selected = names[0] if names else None
         table.clear()

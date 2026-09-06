@@ -10,7 +10,8 @@
       "firewall": "unknown",
       "run": null,
       "runs_total": 4,
-      "sessions": []
+      "sessions": [],
+      "firewall_detail": "box is stopped; no live ruleset to read"
     },
     {
       "name": "zeta-tests",

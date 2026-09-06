@@ -79,6 +79,10 @@ async def test_table_renders_fixture_boxes_in_order(fake_log: Path) -> None:
             ("open", "red"),
             ("unknown", "dim"),
         ]
+        alpha_last = table.get_row_at(3)[7]  # stopped box: no run, but the CLI said why
+        assert alpha_last.plain == "egress: box is stopped; no live ruleset to read"
+        assert alpha_last.spans and alpha_last.spans[0].style == "dim"
+        assert app.error is None  # a stopped box's detail is not a header error
         summary = str(app.query_one("#summary", Static).content)
         assert "4 boxes" in summary
         assert "1 running run" in summary
@@ -548,3 +552,50 @@ async def test_command_palette_is_off(fake_log: Path) -> None:
         await pilot.press("ctrl+p")
         await pilot.pause()
         assert app.screen.__class__.__name__ != "CommandPalette"
+
+
+async def test_egress_disagreement_is_a_header_error(
+    fake_log: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    app = build_app([])
+    async with app.run_test() as pilot:
+        await wait_for_table(app)
+        await pilot.pause()
+        assert app.error is None
+        status = json.loads((FIXTURES / "status.json").read_text())
+        zeta = status["boxes"][1]
+        zeta["firewall"] = "unknown"
+        zeta["firewall_detail"] = "mode file says deny but the live ruleset disagrees (open)"
+        (tmp_path / "status.json").write_text(json.dumps(status))
+        monkeypatch.setenv("FAKE_AGENTBOX_STATUS_FILE", str(tmp_path / "status.json"))
+        await pilot.press("r")
+        await wait_for(lambda: app.error is not None)
+        await pilot.pause()
+        assert app.error == (
+            "egress zeta-tests: mode file says deny but the live ruleset disagrees (open)"
+        )
+        assert app.error_source == "egress"
+        table = app.query_one("#boxes", DataTable)
+        zeta_last = table.get_row_at(0)[7]
+        assert zeta_last.plain.startswith("Edit  tests/e2e/checkout.spec.ts  egress: mode file")
+        assert str(table.get_row_at(0)[1]) == "unknown"
+        monkeypatch.delenv("FAKE_AGENTBOX_STATUS_FILE")
+        await pilot.press("r")
+        await wait_for(lambda: app.error is None)  # a clean poll clears it
+        assert app.is_running
+
+
+async def test_poll_rerender_does_not_undo_a_keypress(fake_log: Path) -> None:
+    """A poll that re-renders while a cursor move's highlight message is still queued."""
+    app = build_app([])
+    async with app.run_test() as pilot:
+        await wait_for_table(app)
+        await pilot.pause()
+        table = app.query_one("#boxes", DataTable)
+        assert app.status is not None
+        table.action_cursor_down()  # the cursor is on mid-api; RowHighlighted is queued
+        app.render_table(app.status)  # the poll rebuilds the table before it is handled
+        await pilot.pause()
+        assert table.cursor_row == 1
+        assert app.selected == "mid-api"
+        await wait_for(lambda: app.follow_key == ("mid-api", None))
