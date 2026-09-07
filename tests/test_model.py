@@ -72,6 +72,8 @@ def test_lost_and_unknown_runs_are_not_running() -> None:
     assert run_state_style("unknown") == "dim"
     assert run_state_style("running") == run_state_style("done") == ""
     assert "lost" in RUN_STATES and "unknown" in RUN_STATES
+    assert "waiting" in RUN_STATES
+    assert run_state_style("waiting") == "yellow"
 
 
 def test_egress_mode_mapping_and_style() -> None:

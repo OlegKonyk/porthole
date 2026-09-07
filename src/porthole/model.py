@@ -6,9 +6,10 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-RUN_STATES = ("running", "done", "failed", "stopped", "lost", "unknown")
+RUN_STATES = ("running", "done", "failed", "stopped", "waiting", "lost", "unknown")
 # `lost`: the run's process vanished without recording an exit (the CLI reconciles it).
 # `unknown`: a run directory with no status file. Neither counts as running.
+# `waiting`: the run stopped to ask the operator a question; `agentbox resume` answers it.
 # The box's egress mode. `drop` was the old name for `deny` and is mapped to it.
 EGRESS_MODES = ("deny", "observe", "open", "unknown")
 EVENT_KINDS = ("text", "tool", "tool_result", "hook", "result", "status")
@@ -229,9 +230,11 @@ def egress_style(mode: str) -> str:
 
 
 def run_state_style(state: str) -> str:
-    """failed and lost share a colour; unknown is dimmed; the rest use the theme's text."""
+    """failed and lost share a colour; waiting is yellow; unknown is dimmed; the rest use the theme's text."""
     if state in ("failed", "lost"):
         return "red"
+    if state == "waiting":
+        return "yellow"
     if state == "unknown":
         return "dim"
     return ""
